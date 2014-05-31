@@ -5,8 +5,8 @@
  *      Author: Stefan Hauenstein
  */
 
-#ifndef SOCKETPRO_H_
-#define SOCKETPRO_H_
+#ifndef SOCKETPRO_H_INCLUDED
+#define SOCKETPRO_H_INCLUDED
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +18,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include "socketpro.h"
 
 /* Socket-Deskriptor */
 #define socket_t int
@@ -48,4 +49,4 @@ void close_socket( socket_t *sock);
 
 void cleanup(void);
 
-#endif /* SOCKETPRO_H_ */
+#endif /* SOCKETPRO_H_INCLUDED */

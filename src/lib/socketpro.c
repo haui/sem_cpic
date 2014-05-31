@@ -70,7 +70,7 @@ void connect_socket(socket_t *sock, char *serv_addr, unsigned short port) {
 		host_info = gethostbyname(serv_addr);
 		if (NULL == host_info)
 			error_exit("Unbekannter Server");
-		memcpy((char *) &server.sin_addr, host_info->h_addr,
+		memcpy((char *) &server.sin_addr, host_info->h_addr_list,
 		host_info->h_length);
 	}
 	server.sin_family = AF_INET;

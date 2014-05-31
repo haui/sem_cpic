@@ -26,7 +26,7 @@ int main (int argc, char *argv[]) {
       buffer[0] = '\0';
       TCP_recv (&sock, buffer, BUF-1);
       printf ("%s\n", buffer);
-      printf ("");
+      printf ("---");
       fgets (buffer, BUF, stdin);
       TCP_send (&sock, buffer, strlen (buffer));
   } while (strcmp (buffer, "quit\n") != 0);
