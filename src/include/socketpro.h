@@ -47,6 +47,6 @@ void UDP_recv( socket_t *sock, char *data, size_t size);
 
 void close_socket( socket_t *sock);
 
-void cleanup(void);
+void write_eot(int client_socket);
 
 #endif /* SOCKETPRO_H_INCLUDED */

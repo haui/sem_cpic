@@ -19,7 +19,7 @@ int create_socket(int af, int type, int protocol) {
 	const int y = 1;
 	sock = socket(af, type, protocol);
 	if (sock < 0)
-		error_exit("Fehler beim Anlegen eines Sockets");
+		error_exit("ERROR: CREATE SOCKET");
 
 	setsockopt(sock, SOL_SOCKET,
 	SO_REUSEADDR, &y, sizeof(int));
@@ -34,13 +34,13 @@ void bind_socket(socket_t *sock, unsigned long adress, unsigned short port) {
 	server.sin_addr.s_addr = htonl(adress);
 	server.sin_port = htons(port);
 	if (bind(*sock, (struct sockaddr*) &server, sizeof(server)) < 0)
-		error_exit("Kann das Socket nicht \"binden\"");
+		error_exit("ERROR: BIND SOCKET");
 }
 
 /* auf "listen" setzen */
 void listen_socket( socket_t *sock) {
-	if (listen(*sock, 5) == -1)
-		error_exit("Fehler bei listen");
+	if (listen(*sock, 100) == -1)
+		error_exit("ERROR: LISTEN SOCKET");
 }
 
 /* Client Verbindung annehmen */
@@ -51,7 +51,7 @@ void accept_socket( socket_t *socket, socket_t *new_socket) {
 	len = sizeof(client);
 	*new_socket = accept(*socket, (struct sockaddr *) &client, &len);
 	if (*new_socket == -1)
-		error_exit("Fehler bei accept");
+		error_exit("ERROR: ACCEPT SOCKET");
 }
 
 /* Verbindung zum Server */
@@ -63,13 +63,13 @@ void connect_socket(socket_t *sock, char *serv_addr, unsigned short port) {
 	memset(&server, 0, sizeof(server));
 	if ((addr = inet_addr(serv_addr)) != INADDR_NONE) {
 
-		/* argv[1] ist eine numerische IP-Adresse */
+		/* numerische IP-Adresse */
 		memcpy((char *) &server.sin_addr, &addr, sizeof(addr));
 	} else {
-		/* argv[1] ist ein Servernamen bspw. "localhost" */
+		/* Servernamen bspw. "localhost" */
 		host_info = gethostbyname(serv_addr);
 		if (NULL == host_info)
-			error_exit("Unbekannter Server");
+			error_exit("ERROR: SERVERNAME or IP");
 		memcpy((char *) &server.sin_addr, host_info->h_addr_list,
 		host_info->h_length);
 	}
@@ -77,13 +77,13 @@ void connect_socket(socket_t *sock, char *serv_addr, unsigned short port) {
 	server.sin_port = htons(port);
 	/* Baue Verbindung auf. */
 	if (connect(*sock, (struct sockaddr *) &server, sizeof(server)) < 0)
-		error_exit("Kann keine Verbindung zum Server herstellen");
+		error_exit("ERROR: CONNECT SERVER");
 }
 
 /* Daten versenden via TCP */
 void TCP_send( socket_t *sock, char *data, size_t size) {
-	if (send(*sock, data, size, 0) == -1)
-		error_exit("Fehler bei send()");
+	if (send(*sock, data, size+1, 0) == -1)
+		error_exit("ERROR: TCP_SEND");
 }
 
 /* Daten empfangen via TCP */
@@ -93,7 +93,7 @@ void TCP_recv( socket_t *sock, char *data, size_t size) {
 	if (len > 0 || len != -1)
 		data[len] = '\0';
 	else
-		error_exit("Fehler bei recv()");
+		error_exit("ERROR: TCP_RECV");
 }
 
 /* Daten senden via UDP */
@@ -139,8 +139,7 @@ void close_socket( socket_t *sock) {
 	close(*sock);
 }
 
-void cleanup(void) {
-	printf("Aufraeumarbeiten erledigt ...\n");
-	return;
+void write_eot(int client_socket) {
+  write_string(client_socket, "", 0);
 }
 

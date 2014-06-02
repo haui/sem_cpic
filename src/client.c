@@ -9,8 +9,11 @@
 #include "socketpro.h"
 #define BUF 1024
 
+socket_t sock;
+
+void client_stop();
+
 int main (int argc, char *argv[]) {
-  socket_t sock;
   char *buffer = (char *)malloc (BUF);
 
   if( argc < 2 ){
@@ -19,7 +22,8 @@ int main (int argc, char *argv[]) {
   }
 
   sock = create_socket(AF_INET, SOCK_STREAM, 0);
-  atexit(cleanup);
+  atexit(client_stop);
+
   connect_socket(&sock, argv[1], 15000);
 
   do {
@@ -32,4 +36,10 @@ int main (int argc, char *argv[]) {
   } while (strcmp (buffer, "quit\n") != 0);
   close_socket (&sock);
   return EXIT_SUCCESS;
+}
+
+void client_stop(){
+	write_eot(sock);
+	close_socket(&sock);
+
 }
