@@ -71,7 +71,7 @@ void connect_socket(socket_t *sock, char *serv_addr, unsigned short port) {
 		if (NULL == host_info)
 			error_exit("ERROR: SERVERNAME or IP");
 		memcpy((char *) &server.sin_addr, host_info->h_addr_list,
-		host_info->h_length);
+				host_info->h_length);
 	}
 	server.sin_family = AF_INET;
 	server.sin_port = htons(port);
@@ -82,7 +82,7 @@ void connect_socket(socket_t *sock, char *serv_addr, unsigned short port) {
 
 /* Daten versenden via TCP */
 void TCP_send( socket_t *sock, char *data, size_t size) {
-	if (send(*sock, data, size+1, 0) == -1)
+	if (send(*sock, data, size + 1, 0) == -1)
 		error_exit("ERROR: TCP_SEND");
 }
 
@@ -135,11 +135,11 @@ void UDP_recv( socket_t *sock, char *data, size_t size) {
 }
 
 /* Socket schließen */
-void close_socket( socket_t *sock) {
+void close_socket(socket_t *sock) {
 	close(*sock);
 }
 
-void write_eot(int client_socket) {
-  write_string(client_socket, "", 0);
+void write_eot(socket_t *sock) {
+	TCP_send(sock, "", 0);
 }
 

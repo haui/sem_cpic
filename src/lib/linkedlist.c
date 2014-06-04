@@ -17,7 +17,7 @@ struct list_struct {
 };
 
 extern struct list_struct *head;
-extern struct sembuf sem_one, sem_all, sem_one_reset, sem_all_reset;
+extern struct sembuf sem_all, sem_all_reset;
 
 int create_list(struct list_struct *tmp, int shmid) {
 
@@ -49,27 +49,12 @@ int add_to_list(struct list_struct *tmp, int shmid, int semid) {
 	} else {
 		tmp = (struct list_struct *) shmat(shmid, NULL, 0);
 
-		/*block tmp*/
-		semctl(semid, 0, SETALL, tmp->semval[0]);
-		semop(semid, &sem_all, 1);
-
-		/*block head*/
-		semctl(semid, 0, SETALL, head->semval[0]);
-		semop(semid, &sem_all, 1);
-
 		if (head->next != head) {
-			/*block prev*/
-			semctl(semid, 0, SETALL, head->prev->semval[0]);
-			semop(semid, &sem_all, 1);
 
 			tmp->next = head;
 			tmp->prev = head->prev;
 			tmp->prev->next = tmp;
 			head->prev = tmp;
-
-			/*Unblock prev*/
-			semctl(semid, 0, SETALL, tmp->prev->semval[0]);
-			semop(semid, &sem_all_reset, 1);
 
 		} else {
 			head->next = tmp;
@@ -78,13 +63,6 @@ int add_to_list(struct list_struct *tmp, int shmid, int semid) {
 			tmp->prev = head;
 
 		}
-		/*Unblock head*/
-		semctl(semid, 0, SETALL, head->semval[0]);
-		semop(semid, &sem_all_reset, 1);
-
-		/*Unblock ptr*/
-		semctl(semid, 0, SETALL, tmp->semval[0]);
-		semop(semid, &sem_all_reset, 1);
 
 		return 0;
 	}
@@ -112,26 +90,26 @@ int search_in_list(char *name, struct list_struct **ptr) {
 	}
 }
 
-int delete_from_list(char *name) {
-	struct list_struct *search = head;
-	int del = 0;
+int delete_from_list(struct list_struct *search, int semid) {
+	if (semop(semid, &sem_all, 1) < 0) {
+		printf("ERROR SEMOP FOR DEL FILE\n");
+	}
 
-	del = search_in_list(name, &search);
-	if (del == 0) {
-		return -1;
+	if (search == head) {
+		head = search->next;
+		search->prev->next = head;
+		head->prev = search->prev;
+
+		shmdt(search);
+		free(search);
 	} else {
-		if (search == head) {
-			head = search->next;
-			search->prev = head->prev;
-			shmdt(search);
-			free(search);
-		} else {
-			search->prev->next = search->next;
-			search->next->prev = search->prev;
-			shmdt(search);
-			free(search);
+		search->prev->next = search->next;
+		search->next->prev = search->prev;
+		shmdt(search);
+		if (semop(semid, &sem_all_reset, 1) < 0) {
+			printf("ERROR RESET SEMOP FOR DEL FILE\n");
 		}
-
+		free(search);
 	}
 
 	return 0;

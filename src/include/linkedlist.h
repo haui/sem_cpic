@@ -25,7 +25,7 @@ int add_to_list(struct list_struct *tmp, int shmid, int semid);
 
 int search_in_list(char *name, struct list_struct **prev);
 
-int delete_from_list(char *name);
+int delete_from_list(struct list_struct *ptr, int semid);
 
 char *print_list();
 

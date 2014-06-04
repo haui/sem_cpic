@@ -20,6 +20,12 @@ struct list_struct {
 	struct list_struct *next;
 };
 
+union semun {
+	int val;
+	struct semid_ds *buf;
+	short * array;
+} sem_val_cd;
+
 struct list_struct *head = NULL;
 
 struct list_struct *curr = NULL;
@@ -27,8 +33,7 @@ struct list_struct *curr = NULL;
 socket_t server_sock, client_sock;
 
 key_t shmkey, semkey;
-int shmid;
-int semid;
+int shmid, semid, semid_cd;
 
 struct sembuf sem_one, sem_all, sem_one_reset, sem_all_reset;
 
@@ -90,7 +95,15 @@ int main(int argc, char *argv[]) {
 				strcpy(msg, retstr);
 
 			} else if (strcmp(command, "CREATE")) {
-				if (search_in_list(tmp->name, &head) == 1) {
+				struct list_struct *ptr = head;
+				if (semctl(semid_cd, 0, SETALL, sem_val_cd) < 0) {
+					printf("ERROR SEMCTL FOR FILE\n");
+				}
+				if (semop(semid_cd, &sem_one, 1) < 0) {
+					printf("ERROR SEMOP FOR FILE\n");
+				}
+
+				if (search_in_list(tmp->name, &ptr) == 1) {
 					sprintf(msg, "FILEEXISTS\n");
 					TCP_send(&client_sock, msg, strlen(msg));
 				} else if (add_to_list(tmp, shmid, semid) == 1) {
@@ -101,10 +114,49 @@ int main(int argc, char *argv[]) {
 					printf("%s\n", msg);
 					TCP_send(&client_sock, msg, strlen(msg));
 				}
+				if (semop(semid_cd, &sem_one_reset, 1) < 0) {
+					printf("ERROR SEMOP_RESET FOR FILE\n");
+				}
 				break;
 			} else if (strcmp(command, "UPDATE")) {
+
+
 			} else if (strcmp(command, "DELETE")) {
+				struct list_struct *ptr = head;
+				if (semctl(semid_cd, 0, SETALL, sem_val_cd) < 0) {
+					printf("ERROR SEMCTL FOR SEARCH_DEL\n");
+				}
+				if (semop(semid_cd, &sem_one, 1) < 0) {
+					printf("ERROR SEMOP FOR SEARCH_DEL\n");
+				}
+
+				if (search_in_list(tmp->name, &ptr) != 1) {
+					if (semop(semid_cd, &sem_one_reset, 1) < 0) {
+						printf("ERROR SEMOP_RESET SEARCH_DEL\n");
+					}
+
+					sprintf(msg, "FILENOTEXISTS\n");
+					TCP_send(&client_sock, msg, strlen(msg));
+				} else {
+
+					// Lock File //
+					if (semctl(semid, 0, SETALL, ptr->semval) < 0) {
+						printf("ERROR SEMCTL FOR DEL FILE\n");
+					}
+
+					if (delete_from_list(ptr, semid) != 0) {
+						printf("ERROR DELETE FILE\n");
+					}
+
+					if (semop(semid_cd, &sem_one_reset, 1) < 0) {
+						printf("ERROR SEMOP_RESET SEARCH_DEL\n");
+					}
+
+				}
+
 			} else if (strcmp(command, "READ")) {
+
+
 			}
 
 		}
@@ -127,6 +179,24 @@ int server_start(int port) {
 	/* Semaphore */
 	printf("Create Semaphore\n");
 	semid = create_sem(10, IPC_CREAT);
+
+	semid_cd = create_sem(1, IPC_CREAT);
+
+	sem_one.sem_num = 0;
+	sem_one.sem_op = -1;
+	sem_one.sem_flg = SEM_UNDO;
+
+	sem_one_reset.sem_num = 0;
+	sem_one_reset.sem_op = 1;
+	sem_one_reset.sem_flg = SEM_UNDO;
+
+	sem_all.sem_num = 0;
+	sem_all.sem_op = -10;
+	sem_all.sem_flg = SEM_UNDO;
+
+	sem_all_reset.sem_num = 0;
+	sem_all_reset.sem_op = 10;
+	sem_all_reset.sem_flg = SEM_UNDO;
 
 	if (create_socket(AF_INET, SOCK_STREAM, 0) < 0) {
 		exit(1);

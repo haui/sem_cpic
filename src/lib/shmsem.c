@@ -36,7 +36,6 @@ int create_shm() {
 	return result;
 }
 
-
 void ss_cleanup(int shmid, int semid) {
 	if (shmid > 0) {
 		int retcode = shmctl(shmid, IPC_RMID, NULL);
@@ -55,36 +54,19 @@ void ss_cleanup(int shmid, int semid) {
 	}
 }
 
-int sem_create (const int sem_size, int flags) {
+int sem_create(const int sem_size, int flags) {
 	semkey = ftok(REF, 7);
 	if (semkey < 0) {
 		perror("ERROR FTOK SEMAPHOR!\n");
 		exit(1);
 	}
 
-	printf("Setting up Semaphor!\n");
 	int result = semget(semkey, sem_size, flags | 0600);
-		if (result < 0) {
-			printf("ERROR: SEMAPHOR FAILED\n");
-			exit(1);
-		}
-		printf("SemID=%d, key=%ld\n", result, (long) semkey);
-
-	sem_one.sem_num = 0;
-	sem_one.sem_op = -1;
-	sem_one.sem_flg = SEM_UNDO;
-
-	sem_one_reset.sem_num = 0;
-	sem_one_reset.sem_op = 1;
-	sem_one_reset.sem_flg = SEM_UNDO;
-
-	sem_all.sem_num = 0;
-	sem_all.sem_op = -10;
-	sem_all.sem_flg = SEM_UNDO;
-
-	sem_all_reset.sem_num = 0;
-	sem_all_reset.sem_op = 10;
-	sem_all_reset.sem_flg = SEM_UNDO;
+	if (result < 0) {
+		printf("ERROR: SEMAPHOR FAILED\n");
+		exit(1);
+	}
+	printf("SemID=%d, key=%ld\n", result, (long) semkey);
 
 	return result;
 }
