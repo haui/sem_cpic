@@ -1,45 +1,74 @@
 /*
- * client.c
+ * test.c
  *
- *  Created on: 06.05.2014
+ *  Created on: 16.06.2014
  *      Author: Stefan Hauenstein
  */
 
+#include <stdio.h>
 #include <string.h>
-#include "socketpro.h"
-#define BUF 1024
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/msg.h>
+#include <sys/wait.h>
+#include <errno.h>
+#include <unistd.h>
+#include <signal.h>
+#include <time.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
-socket_t sock;
+int sock;
 
-void client_stop();
+void handle_error(int retcode, char* etxt);
 
-int main (int argc, char *argv[]) {
-  char *buffer = (char *)malloc (BUF);
-
-  if( argc < 2 ){
-     printf("Usage: %s ServerAdresse\n", *argv);
-     exit(EXIT_FAILURE);
-  }
-
-  sock = create_socket(AF_INET, SOCK_STREAM, 0);
-  atexit(client_stop);
-
-  connect_socket(&sock, argv[1], 15000);
-
-  do {
-      buffer[0] = '\0';
-      TCP_recv (&sock, buffer, BUF-1);
-      printf ("%s\n", buffer);
-      printf ("---");
-      fgets (buffer, BUF, stdin);
-      TCP_send (&sock, buffer, strlen (buffer));
-  } while (strcmp (buffer, "quit\n") != 0);
-  close_socket (&sock);
-  return EXIT_SUCCESS;
+void sig_handler(int sig) {
+	close(sock);
+	exit(0);
 }
 
-void client_stop(){
-	write_eot(sock);
-	close_socket(&sock);
+int main(int argc, char **argv) {
 
+	int port, retcode;
+	struct sockaddr_in serv_addr;
+	char *serverIP;
+
+	char buffer[256];
+
+	port = 15000;
+	serverIP = "127.0.0.1";
+
+	sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	handle_error (retcode,"ERROR SOCKET()\n");
+
+	memset(&serv_addr, 0, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = inet_addr(serverIP);
+	serv_addr.sin_port = htons(port);
+
+	retcode = connect(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+	handle_error(retcode, "ERROR CONNECT()\n");
+
+	while (1) {
+		fgets(buffer, 256, stdin);
+
+		retcode = write(sock, buffer, strlen(buffer));
+
+		handle_error(retcode, "ERROR WRITE()\n");
+
+		bzero(buffer, 500);
+
+		retcode = read(sock, buffer, 256);
+		handle_error(retcode, "ERROR READ()\n");
+
+		printf("%s\n", buffer);
+	}
+
+}
+
+void handle_error(int retcode, char* etxt) {
+	if (retcode < 0) {
+		perror(etxt);
+	}
 }
