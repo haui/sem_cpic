@@ -25,7 +25,7 @@ int semid;
 int server_sock, client_sock;
 node_t *nodes;
 
-const char *REF_FILE = "./server.c";
+const char *REF_FILE = "./src/server.c";
 
 void close_socket() {
 	close(server_sock);
@@ -167,6 +167,7 @@ int main(int argc, char *argv[]) {
 					int i = 0;
 					int status = 0;
 					char *message;
+					message = "FILEEXISTS\n";
 
 					while ((int) strlen(nodes[i].name) != 0) {
 						if (strcmp(nodes[i].name, dateiname) != 0) {
@@ -177,9 +178,7 @@ int main(int argc, char *argv[]) {
 						}
 					}
 
-					if (status == 1) {
-						message = "FILEEXISTS\n";
-					} else {
+					if (status != 1) {
 
 						i = 0;
 						while ((int) strlen(nodes[i].name) != 0) {
@@ -208,19 +207,20 @@ int main(int argc, char *argv[]) {
 				} else if (strcmp(befehl, "READ") == 0) {
 					int i = 0;
 					char message[256];
+					sprintf(message,"NOSUCHFILE\n");
 
 					while ((int) strlen(nodes[i].name) != 0) {
 						if (strcmp(nodes[i].name, dateiname) == 0) {
 
 							result = semctl(semid, 0, SETALL,
-							 &nodes[i].semval[0]);
-							 handle_error(result, "semctl()");
+									&nodes[i].semval[0]);
+							handle_error(result, "semctl()");
 
-							 result = semop(semid, &sem_one, 1);
-							 handle_error(result, "semop()");
+							result = semop(semid, &sem_one, 1);
+							handle_error(result, "semop()");
 
-							 nodes[i].semval[0] = semctl(semid, 0,
-							 GETVAL, 0);
+							nodes[i].semval[0] = semctl(semid, 0,
+							GETVAL, 0);
 
 							sprintf(message, "FILECONTENT %s %d\n%s\n",
 									nodes[i].name, nodes[i].size,
@@ -234,8 +234,6 @@ int main(int argc, char *argv[]) {
 							GETVAL, 0);
 
 							break;
-						} else {
-							strcpy(message, "NOSUCHFILE\n");
 						}
 						i++;
 					}
@@ -247,6 +245,7 @@ int main(int argc, char *argv[]) {
 				} else if (strcmp(befehl, "UPDATE") == 0) {
 					int i = 0;
 					char *message;
+					message = "NOSUCHFILE\n";
 
 					while ((int) strlen(nodes[i].name) != 0) {
 						if (strcmp(nodes[i].name, dateiname) == 0) {
@@ -262,10 +261,22 @@ int main(int argc, char *argv[]) {
 
 							nodes[i].semval[0] = semctl(semid, 0,
 							GETVAL, 0);
+							result = read(client_sock, buffer, 256);
+
+							handle_error(result, "write()");
+
+							strcpy(nodes[i].content, buffer);
+
+							result = write(client_sock, "UPDATED\n", 9);
+
+							handle_error(result, "write()");
+
+							result = semop(semid, &sem_all_reset, 1);
+							handle_error(result, "semop()");
+
+							nodes[i].semval[0] = semctl(semid, 0, GETVAL, 0);
 
 							break;
-						} else {
-							message = "NOSUCHFILE\n";
 						}
 
 						i++;
@@ -275,26 +286,10 @@ int main(int argc, char *argv[]) {
 
 					handle_error(result, "write()");
 
-					if (strcmp(message, "NOSUCHFILE\n") != 0) {
-						result = read(client_sock, buffer, 256);
-
-						handle_error(result, "write()");
-
-						strcpy(nodes[i].content, buffer);
-
-						result = write(client_sock, "UPDATED\n", 9);
-
-						handle_error(result, "write()");
-
-						result = semop(semid, &sem_all_reset, 1);
-						handle_error(result, "semop()");
-
-						nodes[i].semval[0] = semctl(semid, 0, GETVAL, 0);
-					}
 				} else if (strcmp(befehl, "DELETE") == 0) {
 					int i = 0;
 					char *message;
-
+					message = "NOSUCHFILE\n";
 					while ((int) strlen(nodes[i].name) != 0) {
 						if (strcmp(nodes[i].name, dateiname) == 0) {
 							result = semctl(semid, 0, SETALL,
@@ -319,8 +314,6 @@ int main(int argc, char *argv[]) {
 							GETVAL, 0);
 
 							break;
-						} else {
-							message = "NOSUCHFILE\n";
 						}
 
 						i++;
@@ -329,15 +322,6 @@ int main(int argc, char *argv[]) {
 					result = write(client_sock, message, strlen(message));
 					handle_error(result, "write()");
 
-				} else if (strcmp(befehl, "LISTALL") == 0) {
-					int i = 0;
-
-					while ((int) strlen(nodes[i].name) != 0) {
-						printf("%s\n", nodes[i].name);
-						i++;
-					}
-
-					write(client_sock, "OK\n", 3);
 				} else {
 					retcode = write(client_sock, "CMDUNKNOWN\n", 19);
 					handle_error(result, "write()");
