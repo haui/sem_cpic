@@ -60,14 +60,14 @@ int main(int argc, char *argv[]) {
 	shmkey = ftok(REF_FILE, 9);
 	handle_error(semkey, "ftok():");
 
-	shmid = create_shm(shmkey, "create", "SHMGET FAILED!\n");
+	shmid = create_shm(shmkey);
 	handle_error(shmid, "create_shm():");
 
 	nodes = (struct datei *) shmat(shmid, NULL, 0);
 
 	semkey = ftok(REF_FILE, 2);
 	handle_error(semkey, "ftok():");
-	semid = create_sem(semkey, 10, "create", "SEMAPHOR FAILED!\n", IPC_CREAT);
+	semid = create_sem(semkey, 20, IPC_CREAT);
 	handle_error(semid, "create_sem():");
 
 	struct sembuf sem_one, sem_all, sem_one_reset, sem_all_reset;
@@ -81,11 +81,11 @@ int main(int argc, char *argv[]) {
 	sem_one_reset.sem_flg = SEM_UNDO;
 
 	sem_all.sem_num = 0;
-	sem_all.sem_op = -10;
+	sem_all.sem_op = -20;
 	sem_all.sem_flg = SEM_UNDO;
 
 	sem_all_reset.sem_num = 0;
-	sem_all_reset.sem_op = 10;
+	sem_all_reset.sem_op = 20;
 	sem_all_reset.sem_flg = SEM_UNDO;
 
 	int clntLen, portno;
