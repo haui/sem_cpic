@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
 	int retcode;
 
 	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
 
 	FILE *fptr;
 	fptr = fopen(REF_FILE, "rb+");
