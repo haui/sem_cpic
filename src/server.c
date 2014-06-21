@@ -133,11 +133,11 @@ int main(int argc, char *argv[]) {
 
 				char delimiter[] = " ,;:\n";
 
-				char *befehl = strtok(buffer, delimiter);
-				char *dateiname = strtok(NULL, delimiter);
-				char *groesse = strtok(NULL, delimiter);
+				char *cmd = strtok(buffer, delimiter);
+				char *name = strtok(NULL, delimiter);
+				char *size = strtok(NULL, delimiter);
 
-				if (strcmp(befehl, "LIST") == 0) {
+				if (strcmp(cmd, "LIST") == 0) {
 					int i = 0;
 					int c = 0;
 					char *temp;
@@ -163,14 +163,15 @@ int main(int argc, char *argv[]) {
 
 					temp[0] = '\0';
 					message[0] = '\0';
-				} else if (strcmp(befehl, "CREATE") == 0) {
+				} else if (strcmp(cmd, "CREATE") == 0 && name != NULL && size != NULL) {
+
 					int i = 0;
 					int status = 0;
 					char *message;
 					message = "FILEEXISTS\n";
 
 					while ((int) strlen(nodes[i].name) != 0) {
-						if (strcmp(nodes[i].name, dateiname) != 0) {
+						if (strcmp(nodes[i].name, name) != 0) {
 							i++;
 						} else {
 							status = 1;
@@ -190,8 +191,8 @@ int main(int argc, char *argv[]) {
 
 						nodes[i].semval[0] = (short) 10;
 
-						strcpy(nodes[i].name, dateiname);
-						nodes[i].size = atoi(groesse);
+						strcpy(nodes[i].name, name);
+						nodes[i].size = atoi(size);
 						result = write(client_sock, "CONTENT:\n", 10);
 						handle_error(result, "write()");
 						result = read(client_sock, buffer, 255);
@@ -204,13 +205,14 @@ int main(int argc, char *argv[]) {
 
 					handle_error(result, "write()");
 
-				} else if (strcmp(befehl, "READ") == 0) {
+				} else if (strcmp(cmd, "READ") == 0&& name != NULL) {
+
 					int i = 0;
 					char message[256];
-					sprintf(message,"NOSUCHFILE\n");
+					sprintf(message, "NOSUCHFILE\n");
 
 					while ((int) strlen(nodes[i].name) != 0) {
-						if (strcmp(nodes[i].name, dateiname) == 0) {
+						if (strcmp(nodes[i].name, name) == 0) {
 
 							result = semctl(semid, 0, SETALL,
 									&nodes[i].semval[0]);
@@ -226,9 +228,8 @@ int main(int argc, char *argv[]) {
 									nodes[i].name, nodes[i].size,
 									nodes[i].content);
 
-							if (semop(semid, &sem_one_reset, 1) < 0) {
-								printf("ERROR SEMOP_UNDO FOR FILE\n");
-							}
+							result = semop(semid, &sem_one_reset, 1);
+							handle_error(result, "semop()");
 
 							nodes[i].semval[0] = semctl(semid, 0,
 							GETVAL, 0);
@@ -242,17 +243,18 @@ int main(int argc, char *argv[]) {
 					message[0] = '\0';
 					handle_error(result, "write()");
 
-				} else if (strcmp(befehl, "UPDATE") == 0) {
+				} else if (strcmp(cmd, "UPDATE") == 0 && name != NULL && size != NULL) {
+
 					int i = 0;
 					char *message;
 					message = "NOSUCHFILE\n";
 
 					while ((int) strlen(nodes[i].name) != 0) {
-						if (strcmp(nodes[i].name, dateiname) == 0) {
+						if (strcmp(nodes[i].name, name) == 0) {
 							result = semctl(semid, 0, SETALL,
 									&nodes[i].semval[0]);
 							handle_error(result, "semctl()");
-							nodes[i].size = atoi(groesse);
+							nodes[i].size = atoi(size);
 							strcpy(nodes[i].content, "");
 							message = "CONTENT:\n";
 
@@ -286,12 +288,13 @@ int main(int argc, char *argv[]) {
 
 					handle_error(result, "write()");
 
-				} else if (strcmp(befehl, "DELETE") == 0) {
+				} else if (strcmp(cmd, "DELETE") == 0 && name != NULL ) {
+
 					int i = 0;
 					char *message;
 					message = "NOSUCHFILE\n";
 					while ((int) strlen(nodes[i].name) != 0) {
-						if (strcmp(nodes[i].name, dateiname) == 0) {
+						if (strcmp(nodes[i].name, name) == 0) {
 							result = semctl(semid, 0, SETALL,
 									&nodes[i].semval[0]);
 							handle_error(result, "write()");
