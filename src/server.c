@@ -1,3 +1,16 @@
+/*
+ * server.c
+ *
+ *  Created on: 16.06.2014
+ *      Author: Stefan Hauenstein
+ *
+ *      Fileserver, welcher Datei-Strukturen in ein Array verwaltet
+ *      Jede eingehende Verbindung wird geforked.
+ *      Gemeinsamer Speicherplatz über "Shared Memory"
+ *      Verwaltet mit Semaphoren
+ *
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -48,8 +61,12 @@ void handle_error(int retcode, char* etxt) {
 int main(int argc, char *argv[]) {
 	int retcode;
 
+	/* SIG Handler */
+
 	signal(SIGINT, sig_handler);
 	signal(SIGTERM, sig_handler);
+
+	/* SHM & SEM */
 
 	FILE *fptr;
 	fptr = fopen(REF_FILE, "rb+");
@@ -87,6 +104,8 @@ int main(int argc, char *argv[]) {
 	sem_all_reset.sem_num = 0;
 	sem_all_reset.sem_op = 20;
 	sem_all_reset.sem_flg = SEM_UNDO;
+
+	/* SOCKET */
 
 	int clntLen, portno;
 	char buffer[256];
@@ -138,6 +157,8 @@ int main(int argc, char *argv[]) {
 				char *name = strtok(NULL, delimiter);
 				char *size = strtok(NULL, delimiter);
 
+				/* LIST */
+
 				if (strcmp(cmd, "LIST") == 0) {
 					int i = 0;
 					int c = 0;
@@ -164,7 +185,11 @@ int main(int argc, char *argv[]) {
 
 					temp[0] = '\0';
 					message[0] = '\0';
-				} else if (strcmp(cmd, "CREATE") == 0 && name != NULL && size != NULL) {
+				} else
+
+				/* CREATE */
+
+				if (strcmp(cmd, "CREATE") == 0 && name != NULL && size != NULL) {
 
 					int i = 0;
 					int status = 0;
@@ -206,7 +231,11 @@ int main(int argc, char *argv[]) {
 
 					handle_error(result, "write()");
 
-				} else if (strcmp(cmd, "READ") == 0&& name != NULL) {
+				} else
+
+				/* READ */
+
+				if (strcmp(cmd, "READ") == 0 && name != NULL) {
 
 					int i = 0;
 					char message[256];
@@ -244,7 +273,11 @@ int main(int argc, char *argv[]) {
 					message[0] = '\0';
 					handle_error(result, "write()");
 
-				} else if (strcmp(cmd, "UPDATE") == 0 && name != NULL && size != NULL) {
+				} else
+
+				/* UPDATE */
+
+				if (strcmp(cmd, "UPDATE") == 0 && name != NULL && size != NULL) {
 
 					int i = 0;
 					char *message;
@@ -289,7 +322,11 @@ int main(int argc, char *argv[]) {
 
 					handle_error(result, "write()");
 
-				} else if (strcmp(cmd, "DELETE") == 0 && name != NULL ) {
+				} else
+
+				/* DELETE */
+
+				if (strcmp(cmd, "DELETE") == 0 && name != NULL) {
 
 					int i = 0;
 					char *message;
@@ -326,7 +363,11 @@ int main(int argc, char *argv[]) {
 					result = write(client_sock, message, strlen(message));
 					handle_error(result, "write()");
 
-				} else {
+				}
+
+				/* CMDUNKNOWN */
+
+				else {
 					retcode = write(client_sock, "CMDUNKNOWN\n", 19);
 					handle_error(result, "write()");
 				}
