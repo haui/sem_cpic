@@ -3,6 +3,9 @@
  *
  *  Created on: 16.06.2014
  *      Author: Stefan Hauenstein
+ *
+ *
+ *     Client um den Server zu testem
  */
 
 #include <stdio.h>
