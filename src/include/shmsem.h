@@ -28,9 +28,8 @@
 #include "shmsem.h"
 
 void ss_cleanup(int shmid, int semid);
-int create_shm(key_t key, const char *txt, const char *etxt);
-int create_sem(key_t key, const int sem_size, const char *txt, const char *etxt,
-		int flags);
+int create_shm(key_t key);
+int create_sem(key_t key, const int sem_size, int flags);
 
 int lock_sem(int counter, struct sembuf *semb);
 
